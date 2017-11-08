@@ -1,0 +1,9 @@
+[package]
+name = "midi2opc"
+version = "0.1.0"
+authors = ["shybyte <ein@volloeko.de>"]
+
+[dependencies]
+portmidi = "^0.2.4"
+chan-signal = "0.2.0"
+chan = "0.1.19"
