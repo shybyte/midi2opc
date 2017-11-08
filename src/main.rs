@@ -12,6 +12,7 @@ mod opc_strip;
 mod midi_light_strip;
 
 
+use midi_light_strip::MidiLightConfig;
 use pm::PortMidi;
 
 use chan_signal::Signal;
@@ -64,7 +65,13 @@ fn main() {
         }
     });
 
-    let midi_light_strip = midi_light_strip::MidiLightStrip::start(LED_COUNT, false, 128).unwrap();
+    let midi_light_strip = midi_light_strip::MidiLightStrip::start(MidiLightConfig {
+        led_count: LED_COUNT,
+        blink: true,
+        flash: false,
+        max_note: 128,
+        ..Default::default()
+    }).unwrap();
 
     loop {
         chan_select! {
