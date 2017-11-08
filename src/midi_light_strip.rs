@@ -13,11 +13,12 @@ use std::time::Duration;
 static RAINBOW: [[u8; 3]; 12] = [[255, 0, 0], [255, 128, 0], [255, 255, 0], [128, 255, 0], [0, 255, 0], [0, 255, 128], [0, 255, 255], [0, 127, 255], [0, 0, 255], [128, 0, 255], [255, 0, 255], [255, 0, 128]];
 
 pub struct MidiLightStrip {
-    tx_strip: chan::Sender<MidiMessage>
+    tx_strip: chan::Sender<MidiMessage>,
+    max_note: u8,
 }
 
 impl MidiLightStrip {
-    pub fn start(led_count: usize, reversed: bool) -> io::Result<MidiLightStrip> {
+    pub fn start(led_count: usize, reversed: bool, max_note: u8) -> io::Result<MidiLightStrip> {
         let (tx_strip, rx_strip) = chan::sync::<MidiMessage>(0);
 
         thread::spawn(move || {
@@ -51,10 +52,17 @@ impl MidiLightStrip {
             }
         });
 
-        Ok(MidiLightStrip { tx_strip})
+        Ok(MidiLightStrip { tx_strip, max_note })
     }
 
     pub fn on_midi_message(&self, midi_message: MidiMessage) {
-        self.tx_strip.send(midi_message);
+        match midi_message.status {
+            144 | 153 => {
+                if midi_message.data1 < self.max_note {
+                    self.tx_strip.send(midi_message);
+                }
+            }
+            _ => {}
+        }
     }
 }

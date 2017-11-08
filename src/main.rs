@@ -64,7 +64,7 @@ fn main() {
         }
     });
 
-    let midi_light_strip = midi_light_strip::MidiLightStrip::start(LED_COUNT, false).unwrap();
+    let midi_light_strip = midi_light_strip::MidiLightStrip::start(LED_COUNT, false, 128).unwrap();
 
     loop {
         chan_select! {
@@ -73,22 +73,9 @@ fn main() {
                 for event in events {
                     match event.message.status {
                         248 => continue,
-                        144 => {
-//                            println!("note event = {:?}", event);
-                            let note = event.message.data1;
-                            if note<150 {
-                                midi_light_strip.on_midi_message(event.message)
-                            }
-                        },
-                        153 => {
-//                            println!("note event = {:?}", event);
-                            let note = event.message.data1;
-                            if note<150 {
-                                midi_light_strip.on_midi_message(event.message)
-                            }
-                        },
                         _ => {
                             println!("event = {:?}", event);
+                            midi_light_strip.on_midi_message(event.message)
                         }
                     }
                 }

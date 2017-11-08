@@ -1,5 +1,6 @@
 use std::ops::{Add, Sub};
 use std::cmp::{max, min};
+use std::i32;
 
 
 #[derive(Copy, Clone, Debug)]
@@ -45,9 +46,9 @@ impl Add for Color {
 
 
 fn sub_u8_safe(x: u8, y: u8) -> u8 {
-    max(x as i32 - y as i32 , 0) as u8
+    max( i32::from(x)  - i32::from(y) , 0) as u8
 }
 
 fn add_u8_safe(x: u8, y: u8) -> u8 {
-    min(x as i32 + y as i32 , 255) as u8
+    min(i32::from(x)  + i32::from(y)  , 255) as u8
 }
