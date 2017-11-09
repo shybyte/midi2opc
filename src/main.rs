@@ -68,7 +68,8 @@ fn main() {
     let midi_light_strip = midi_light_strip::MidiLightStrip::start(MidiLightConfig {
         led_count: LED_COUNT,
         blink: true,
-        flash: false,
+        flash: true,
+        stream: true,
         max_note: 128,
         ..Default::default()
     }).unwrap();

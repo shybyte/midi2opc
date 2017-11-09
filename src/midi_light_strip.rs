@@ -1,9 +1,10 @@
 use opc_strip::OpcStrip;
 
-use chan;
 use std::io;
+use std::f32;
 use color_strip::ColorStrip;
 use color::Color;
+use std::sync::mpsc;
 
 use pm::MidiMessage;
 
@@ -24,65 +25,89 @@ pub struct MidiLightConfig {
 
 
 pub struct MidiLightStrip {
-    tx_strip: chan::Sender<MidiMessage>,
-    config: MidiLightConfig
+    tx_strip: mpsc::Sender<MidiMessage>,
 }
 
 impl MidiLightStrip {
     pub fn start(config: MidiLightConfig) -> io::Result<MidiLightStrip> {
-        let (tx_strip, rx_strip) = chan::sync::<MidiMessage>(0);
-
-        let thread_config = config.clone();
+        let mut opc_strip = OpcStrip::connect(30, config.reversed)?;
+        let (tx_strip, rx_strip) = mpsc::channel();
 
         thread::spawn(move || {
-            let mut opc_strip_result = OpcStrip::connect(30, thread_config.reversed);
-            if let Ok(ref mut led_strip) = opc_strip_result {
-                let mut color_strip = ColorStrip::new(thread_config.led_count);
-                let mut blink_color = Color::gray(0);
-                let half_white = Color::gray(200);
-
-                loop {
-                    let first_pixel = color_strip.pixel[0];
-                    color_strip.insert(first_pixel);
-
-                    chan_select! {
-                    default => {
-                        color_strip.pixel[0] = color_strip.pixel[0] - Color::gray(10);
-                        blink_color = blink_color - Color::gray(40);
-                    },
-                    rx_strip.recv() -> event => {
-                        let rgb = RAINBOW[event.unwrap().data1 as usize %12 as usize];
-                        let color = Color::new(rgb[0] , rgb[1], rgb[2]);
-                        if thread_config.flash {
-                            color_strip.pixel[0] = color;
-                        }
-                        if thread_config.blink  {
-                            if thread_config.flash {
-                                blink_color = color + half_white;
-                            } else {
-                                blink_color = color ;
-                            }
-                        }
-                    },
-                }
-
-                    led_strip.send(&color_strip, blink_color);
-                    thread::sleep(Duration::from_millis(10));
-                }
-            }
+            let mut my_thread = MidiLightStripThread { rx_strip, config, opc_strip };
+            my_thread.run();
         });
 
-        Ok(MidiLightStrip { tx_strip, config })
+        Ok(MidiLightStrip { tx_strip })
     }
 
     pub fn on_midi_message(&self, midi_message: MidiMessage) {
-        match midi_message.status {
-            144 | 153 => {
-                if midi_message.data1 < self.config.max_note {
-                    self.tx_strip.send(midi_message);
+        self.tx_strip.send(midi_message).ok();
+    }
+}
+
+
+pub struct MidiLightStripThread {
+    opc_strip: OpcStrip,
+    rx_strip: mpsc::Receiver<MidiMessage>,
+    config: MidiLightConfig
+}
+
+impl MidiLightStripThread {
+    pub fn run(&mut self) {
+        let mut color_strip = ColorStrip::new(self.config.led_count);
+        let mut blink_color = Color::gray(0);
+        let half_white = Color::gray(200);
+
+        let mut pressed_keys: Vec<u8> = vec![];
+        let mut stream_i: u64 = 0;
+
+        loop {
+            let first_pixel = color_strip.pixel[0];
+            color_strip.insert(first_pixel);
+
+            if let Some(midi_message) = self.rx_strip.try_recv().ok() {
+                match midi_message.status {
+                    144 | 153 if midi_message.data1 < self.config.max_note => {
+                        let note = midi_message.data1;
+                        pressed_keys.push(note);
+                        let color = get_rainbow_color(note);
+                        if self.config.flash {
+                            color_strip.pixel[0] = color;
+                        }
+                        if self.config.blink {
+                            if self.config.flash {
+                                blink_color = color + half_white;
+                            } else {
+                                blink_color = color;
+                            }
+                        }
+                    }
+                    128 => {
+                        pressed_keys.retain(|&note| note != midi_message.data1);
+                    }
+                    _ => {}
                 }
+            } else {
+                if !pressed_keys.is_empty() && self.config.stream {
+                    let key_index = (stream_i / 11) as usize % pressed_keys.len();
+                    color_strip.pixel[0] = get_rainbow_color(pressed_keys[key_index]) -
+                        Color::gray(((stream_i as f32 / 2.0).sin() * 100.0 + 120.0) as u8);
+                    stream_i += 1;
+                } else {
+                    color_strip.pixel[0] = color_strip.pixel[0] - Color::gray(10);
+                }
+                blink_color = blink_color - Color::gray(40);
             }
-            _ => {}
+
+            self.opc_strip.send(&color_strip, blink_color);
+            thread::sleep(Duration::from_millis(10));
         }
     }
+}
+
+
+fn get_rainbow_color(note: u8) -> Color {
+    let rgb = RAINBOW[note as usize % 12 as usize];
+    Color::new(rgb[0], rgb[1], rgb[2])
 }
