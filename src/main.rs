@@ -4,6 +4,7 @@
 extern crate chan;
 extern crate portmidi as pm;
 extern crate chan_signal;
+extern crate midi_message;
 
 
 mod color;
@@ -14,6 +15,7 @@ mod midi_light_strip;
 
 use midi_light_strip::MidiLightConfig;
 use pm::PortMidi;
+use midi_message::MidiMessage;
 
 use chan_signal::Signal;
 
@@ -83,7 +85,7 @@ fn main() {
                         248 => continue,
                         _ => {
                             println!("event = {:?}", event);
-                            midi_light_strip.on_midi_message(event.message)
+                            midi_light_strip.on_midi_message(convert_midi_message(event.message))
                         }
                     }
                 }
@@ -96,4 +98,8 @@ fn main() {
             }
         }
     }
+}
+
+pub fn convert_midi_message(src: pm::MidiMessage) -> MidiMessage {
+    MidiMessage::new(src.status, src.data1, src.data2)
 }

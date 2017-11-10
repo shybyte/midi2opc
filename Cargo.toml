@@ -7,3 +7,4 @@ authors = ["shybyte <ein@volloeko.de>"]
 portmidi = "^0.2.4"
 chan-signal = "0.2.0"
 chan = "0.1.19"
+midi-message = { git = "https://github.com/shybyte/midi-message-rs" }

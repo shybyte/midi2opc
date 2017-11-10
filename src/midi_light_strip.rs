@@ -6,7 +6,7 @@ use color_strip::ColorStrip;
 use color::Color;
 use std::sync::mpsc;
 
-use pm::MidiMessage;
+use midi_message::MidiMessage;
 
 use std::thread;
 use std::time::Duration;
@@ -67,9 +67,8 @@ impl MidiLightStripThread {
             color_strip.insert(first_pixel);
 
             if let Some(midi_message) = self.rx_strip.try_recv().ok() {
-                match midi_message.status {
-                    144 | 153 if midi_message.data1 < self.config.max_note => {
-                        let note = midi_message.data1;
+                match midi_message {
+                    MidiMessage::NoteOn(_, note, _) if note < self.config.max_note => {
                         pressed_keys.push(note);
                         let color = get_rainbow_color(note);
                         if self.config.flash {
@@ -83,8 +82,8 @@ impl MidiLightStripThread {
                             }
                         }
                     }
-                    128 => {
-                        pressed_keys.retain(|&note| note != midi_message.data1);
+                    MidiMessage::NoteOff(_, message_note, _) => {
+                        pressed_keys.retain(|&note| note != message_note);
                     }
                     _ => {}
                 }
