@@ -30,7 +30,7 @@ pub struct MidiLightStrip {
 
 impl MidiLightStrip {
     pub fn start(config: MidiLightConfig) -> io::Result<MidiLightStrip> {
-        let mut opc_strip = OpcStrip::connect(30, config.reversed)?;
+        let opc_strip = OpcStrip::connect(30, config.reversed)?;
         let (tx_strip, rx_strip) = mpsc::channel();
 
         thread::spawn(move || {
