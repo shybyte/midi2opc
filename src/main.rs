@@ -15,7 +15,6 @@ mod midi_light_strip;
 
 use midi_light_strip::MidiLightConfig;
 use pm::PortMidi;
-use midi_message::MidiMessage;
 
 use chan_signal::Signal;
 
@@ -31,7 +30,6 @@ fn print_devices(pm: &PortMidi) {
 const BUF_LEN: usize = 1024;
 
 const LED_COUNT: usize = 30; // t
-
 
 
 fn main() {
@@ -85,7 +83,7 @@ fn main() {
                         248 => continue,
                         _ => {
                             println!("event = {:?}", event);
-                            midi_light_strip.on_midi_message(convert_midi_message(event.message))
+                            midi_light_strip.on_raw_midi_message(event.message.status,event.message.data1,event.message.data2);
                         }
                     }
                 }
@@ -98,8 +96,4 @@ fn main() {
             }
         }
     }
-}
-
-pub fn convert_midi_message(src: pm::MidiMessage) -> MidiMessage {
-    MidiMessage::new(src.status, src.data1, src.data2)
 }

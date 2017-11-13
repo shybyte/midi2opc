@@ -44,6 +44,10 @@ impl MidiLightStrip {
     pub fn on_midi_message(&self, midi_message: MidiMessage) {
         self.tx_strip.send(midi_message).ok();
     }
+
+    pub fn on_raw_midi_message(&self, status_and_channel: u8, data1: u8, data2: u8) {
+        self.on_midi_message(MidiMessage::new(status_and_channel, data1, data2));
+    }
 }
 
 
@@ -90,8 +94,8 @@ impl MidiLightStripThread {
             } else {
                 if !pressed_keys.is_empty() && self.config.stream {
                     let key_index = (stream_i / 11) as usize % pressed_keys.len();
-                    color_strip.pixel[0] = get_rainbow_color(pressed_keys[key_index]) -
-                        Color::gray(((stream_i as f32 / 2.0).sin() * 100.0 + 120.0) as u8);
+                    color_strip.pixel[0] = get_rainbow_color(pressed_keys[key_index]);
+//                        - Color::gray(((stream_i as f32 / 2.0).sin() * 100.0 + 120.0) as u8);
                     stream_i += 1;
                 } else {
                     color_strip.pixel[0] = color_strip.pixel[0] - Color::gray(10);
