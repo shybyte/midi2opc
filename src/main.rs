@@ -13,7 +13,7 @@ mod opc_strip;
 mod midi_light_strip;
 
 
-use midi_light_strip::MidiLightConfig;
+use midi_light_strip::{MidiLightConfig, MidiLightPatch};
 use pm::PortMidi;
 
 use chan_signal::Signal;
@@ -35,11 +35,13 @@ const LED_COUNT: usize = 30; // t
 fn main() {
     println!("Start blinking...");
 
+    // Must run before any other thread starts.
+    let os_signal = chan_signal::notify(&[Signal::INT, Signal::TERM]);
+
     let context = pm::PortMidi::new().unwrap();
     print_devices(&context);
 
     let (tx, rx) = chan::sync(0);
-    let os_signal = chan_signal::notify(&[Signal::INT, Signal::TERM]);
 
     let in_devices: Vec<pm::DeviceInfo> = context.devices()
         .unwrap()
@@ -74,6 +76,13 @@ fn main() {
         ..Default::default()
     }).unwrap();
 
+    midi_light_strip.reconfigure(&MidiLightPatch {
+        blink: true,
+        flash: true,
+        stream: false,
+        max_note: 128,
+    });
+
     loop {
         chan_select! {
             rx.recv() -> midi_events => {
@@ -96,4 +105,6 @@ fn main() {
             }
         }
     }
+
+    midi_light_strip.stop();
 }
