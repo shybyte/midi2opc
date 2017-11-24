@@ -3,6 +3,8 @@ use color::Color;
 use color_strip::ColorStrip;
 use effects::effect::Effect;
 use rainbow::get_rainbow_color;
+use std::f64;
+use rand::random;
 
 #[derive(Copy, Clone, Debug, Default)]
 struct Point {
@@ -31,7 +33,8 @@ impl River {
     }
 
     pub fn on_note(&mut self, note: u8) {
-        self.points.push(Point::new(0.0, get_rainbow_color(note), 1.0))
+        self.points.push(Point::new(self.led_count as f32 + 2.0, get_rainbow_color(note), 1.0))
+//                self.points.push(Point::new(self.led_count as f32 + 5.0, Color::new(0, 0, random::<u8>()), 1.0))
     }
 }
 
@@ -43,7 +46,7 @@ impl Effect for River {
             let mut color = Color::black();
             for point in &self.points {
                 let delta = point.pos - pos;
-                let opacity = f32::max(1.0 - (delta * delta) / 5.0, 0.0);
+                let opacity = f32::max(1.0 - (delta * delta) / 1.0, 0.0);
                 color += point.color.mul_with_opacity(opacity);
             }
             *pixel += color;
@@ -52,10 +55,10 @@ impl Effect for River {
 
     fn tick(&mut self) {
         for point in &mut self.points {
-            point.pos += point.speed / 20.0;
+            point.pos -= point.speed / 20.0;
         }
-        let max_pos = self.led_count;
-        self.points.retain(|p| (p.pos as usize) < max_pos);
+        //        let max_pos = self.led_count;
+        self.points.retain(|p| (p.pos) > -3.0);
     }
 
     fn on_midi_message(&mut self, midi_message: MidiMessage) {

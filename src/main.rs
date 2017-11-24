@@ -5,6 +5,7 @@ extern crate chan;
 extern crate portmidi as pm;
 extern crate chan_signal;
 extern crate midi_message;
+extern crate rand;
 
 
 mod color;
@@ -14,8 +15,10 @@ mod effects {
     pub mod flash;
     pub mod blink;
     pub mod stream;
+    pub mod stream_center;
     pub mod push;
     pub mod river;
+    pub mod fish;
 }
 
 mod rainbow;
@@ -81,15 +84,17 @@ fn main() {
     let midi_light_strip = midi_light_strip::MidiLightStrip::start(MidiLightConfig {
         led_count: LED_COUNT,
         patch: MidiLightPatch::default(),
-        reversed: false,
+        reversed: true,
     }).unwrap();
 
     midi_light_strip.reconfigure(&MidiLightPatch {
-        river: true,
+        fish: true,
+        river: false,
         push: false,
         blink: false,
         flash: false,
         stream: false,
+        stream_center: false,
         ripples: false,
         max_note: 128,
     });

@@ -49,7 +49,7 @@ impl Effect for Ripple {
             self.v[i] = new_v * 0.999;
         }
         for i in 0..l {
-            self.u[i] = f64::max(self.u[i] + self.v[i] * 1.0 - 1.0, 0.0);
+            self.u[i] = f64::max(self.u[i] + self.v[i] * 1.0 - 2.0, 0.0);
         }
     }
 
