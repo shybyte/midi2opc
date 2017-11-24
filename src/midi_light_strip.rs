@@ -75,8 +75,8 @@ pub struct MidiLightStripThread {
 
 impl MidiLightStripThread {
     fn new(opc_strip: OpcStrip,
-               rx_strip: mpsc::Receiver<MidiLightMessage>,
-               config: MidiLightConfig) -> MidiLightStripThread {
+           rx_strip: mpsc::Receiver<MidiLightMessage>,
+           config: MidiLightConfig) -> MidiLightStripThread {
         let mut result = MidiLightStripThread { rx_strip, config, opc_strip, effects: vec![] };
         result.init();
         result
@@ -100,7 +100,7 @@ impl MidiLightStripThread {
         }
 
         if midi_light_patch.blink {
-            if midi_light_patch.flash {
+            if midi_light_patch.flash || midi_light_patch.stream {
                 self.effects.push(Box::new(Blink::new_with_add_color(Color::gray(200))));
             } else {
                 self.effects.push(Box::new(Blink::new()));
