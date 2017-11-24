@@ -8,6 +8,7 @@ use effects::flash::Flash;
 use effects::blink::Blink;
 use effects::stream::Stream;
 use effects::push::Push;
+use effects::river::River;
 use color::Color;
 use std::sync::mpsc;
 
@@ -98,6 +99,9 @@ impl MidiLightStripThread {
         if midi_light_patch.ripples {
             self.effects.push(Box::new(Ripple::new(self.config.led_count)));
         }
+        if midi_light_patch.river {
+            self.effects.push(Box::new(River::new(self.config.led_count)));
+        }
 
         if midi_light_patch.blink {
             if midi_light_patch.flash || midi_light_patch.stream {
@@ -153,6 +157,7 @@ impl MidiLightStripThread {
 
 #[derive(Default, Clone)]
 pub struct MidiLightPatch {
+    pub river: bool,
     pub blink: bool,
     pub flash: bool,
     pub stream: bool,

@@ -15,6 +15,7 @@ mod effects {
     pub mod blink;
     pub mod stream;
     pub mod push;
+    pub mod river;
 }
 
 mod rainbow;
@@ -84,7 +85,8 @@ fn main() {
     }).unwrap();
 
     midi_light_strip.reconfigure(&MidiLightPatch {
-        push: true,
+        river: true,
+        push: false,
         blink: false,
         flash: false,
         stream: false,

@@ -13,4 +13,5 @@ mod effects {
     pub mod blink;
     pub mod stream;
     pub mod push;
+    pub mod river;
 }

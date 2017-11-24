@@ -22,6 +22,14 @@ impl Color {
     pub fn black() -> Color {
         Color::default()
     }
+
+    pub fn mul_with_opacity(&self, opacity: f32) -> Color {
+        Color {
+            r: mul_f32_safe(self.r, opacity),
+            g: mul_f32_safe(self.g, opacity),
+            b: mul_f32_safe(self.b, opacity),
+        }
+    }
 }
 
 impl Sub for Color {
@@ -62,9 +70,13 @@ impl SubAssign for Color {
 
 
 fn sub_u8_safe(x: u8, y: u8) -> u8 {
-    max( i32::from(x)  - i32::from(y) , 0) as u8
+    max(i32::from(x) - i32::from(y), 0) as u8
 }
 
 fn add_u8_safe(x: u8, y: u8) -> u8 {
-    min(i32::from(x)  + i32::from(y)  , 255) as u8
+    min(i32::from(x) + i32::from(y), 255) as u8
+}
+
+fn mul_f32_safe(x: u8, y: f32) -> u8 {
+    min((f32::from(x) * y) as i32, 255) as u8
 }
