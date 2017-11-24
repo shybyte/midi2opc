@@ -27,4 +27,9 @@ impl ColorStrip {
         }
     }
 
+    pub fn add(&mut self, color_strip: &ColorStrip) {
+        for (target, &src) in self.pixel.iter_mut().zip(color_strip.pixel.iter()) {
+            *target += src;
+        }
+    }
 }

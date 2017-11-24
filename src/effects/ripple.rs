@@ -20,7 +20,6 @@ impl Ripple {
     pub fn on_note(&mut self, note: u8) {
         let i = (i32::from(note)) % self.u.len() as i32;
         self.u[i as usize] = 1256.0;
-        eprintln!(" bllllllaaaaaaa");
     }
 }
 

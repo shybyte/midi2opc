@@ -19,7 +19,7 @@ impl Flash {
 
 impl Effect for Flash {
     fn paint(&mut self, color_strip: &mut ColorStrip) {
-        color_strip.blit(&self.color_strip);
+        color_strip.add(&self.color_strip);
     }
 
     fn tick(&mut self) {

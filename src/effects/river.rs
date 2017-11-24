@@ -3,8 +3,6 @@ use color::Color;
 use color_strip::ColorStrip;
 use effects::effect::Effect;
 use rainbow::get_rainbow_color;
-use std::f64;
-use rand::random;
 
 #[derive(Copy, Clone, Debug, Default)]
 struct Point {

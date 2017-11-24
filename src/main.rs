@@ -88,12 +88,12 @@ fn main() {
     }).unwrap();
 
     midi_light_strip.reconfigure(&MidiLightPatch {
-        fish: true,
+        fish: false,
         river: false,
         push: false,
-        blink: false,
-        flash: false,
-        stream: false,
+        blink: true,
+        flash: true,
+        stream: true,
         stream_center: false,
         ripples: false,
         max_note: 128,

@@ -23,7 +23,7 @@ impl Stream {
 
 impl Effect for Stream {
     fn paint(&mut self, color_strip: &mut ColorStrip) {
-        color_strip.blit(&self.color_strip);
+        color_strip.add(&self.color_strip);
     }
 
     fn tick(&mut self) {
@@ -39,13 +39,16 @@ impl Effect for Stream {
 
     fn on_midi_message(&mut self, midi_message: MidiMessage) {
         match midi_message {
-            MidiMessage::NoteOn(_, note, _) => {
+            MidiMessage::NoteOn(_, note, vel) if vel > 0 => {
                 self.pressed_keys.push(note);
                 self.color_strip.pixel[0] = get_rainbow_color(note);
-            },
+            }
+            MidiMessage::NoteOn(_, message_note, vel) if vel == 0 => {
+                self.pressed_keys.retain(|&note| note != message_note);
+            }
             MidiMessage::NoteOff(_, message_note, _) => {
                 self.pressed_keys.retain(|&note| note != message_note);
-            },
+            }
             _ => {}
         }
     }

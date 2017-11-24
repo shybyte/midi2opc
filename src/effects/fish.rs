@@ -10,13 +10,14 @@ use rand::random;
 struct Point {
     pos: f64,
     speed: f64,
+    boost: f64,
     finished: bool,
     color: Color
 }
 
 impl Point {
-    pub fn new(pos: f64, color: Color, speed: f64) -> Self {
-        Self { pos, color, speed, finished: false }
+    pub fn new(pos: f64, color: Color, speed: f64, boost: f64) -> Self {
+        Self { pos, color, speed, finished: false, boost }
     }
 }
 
@@ -45,7 +46,8 @@ impl Fish {
             lonely
         };
         let random_speed = random::<f64>() - 0.5;
-        self.points.push(Point::new(lonely_pos.floor(), get_rainbow_color(note), random_speed))
+        let random_boost = 1.0 + random::<f64>();
+        self.points.push(Point::new(lonely_pos.floor(), get_rainbow_color(note), random_speed, random_boost))
     }
 }
 
@@ -91,7 +93,7 @@ impl Effect for Fish {
         }
 
         for point in &mut self.points {
-            point.pos += point.speed / 20.0;
+            point.pos += point.speed * point.boost / 20.0;
         }
         let led_count = self.led_count;
         self.points.retain(|p| (p.pos as usize) > 0 && (p.pos as usize) < led_count && !p.finished);
