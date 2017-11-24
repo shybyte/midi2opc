@@ -1,9 +1,9 @@
-use std::ops::{Add, Sub};
+use std::ops::{Add, Sub, AddAssign, SubAssign};
 use std::cmp::{max, min};
 use std::i32;
 
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
 pub struct Color {
     pub r: u8,
     pub g: u8,
@@ -17,6 +17,10 @@ impl Color {
 
     pub fn gray(v: u8) -> Color {
         Color { r: v, g: v, b: v }
+    }
+
+    pub fn black() -> Color {
+        Color::default()
     }
 }
 
@@ -41,6 +45,18 @@ impl Add for Color {
             g: add_u8_safe(self.g, other.g),
             b: add_u8_safe(self.b, other.b),
         }
+    }
+}
+
+impl AddAssign for Color {
+    fn add_assign(&mut self, other: Color) {
+        *self = *self + other;
+    }
+}
+
+impl SubAssign for Color {
+    fn sub_assign(&mut self, other: Color) {
+        *self = *self - other;
     }
 }
 

@@ -8,7 +8,17 @@ extern crate midi_message;
 
 
 mod color;
-mod color_strip; //
+mod effects {
+    pub mod effect;
+    pub mod ripple;
+    pub mod flash;
+    pub mod blink;
+    pub mod stream;
+    pub mod push;
+}
+
+mod rainbow;
+mod color_strip;
 mod opc_strip;
 mod midi_light_strip;
 
@@ -69,17 +79,16 @@ fn main() {
 
     let midi_light_strip = midi_light_strip::MidiLightStrip::start(MidiLightConfig {
         led_count: LED_COUNT,
-        blink: true,
-        flash: true,
-        stream: true,
-        max_note: 128,
-        ..Default::default()
+        patch: MidiLightPatch::default(),
+        reversed: false,
     }).unwrap();
 
     midi_light_strip.reconfigure(&MidiLightPatch {
-        blink: true,
-        flash: true,
+        push: true,
+        blink: false,
+        flash: false,
         stream: false,
+        ripples: false,
         max_note: 128,
     });
 

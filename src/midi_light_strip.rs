@@ -1,8 +1,13 @@
 use opc_strip::OpcStrip;
 
 use std::io;
-// use std::f32;
 use color_strip::ColorStrip;
+use effects::effect::Effect;
+use effects::ripple::Ripple;
+use effects::flash::Flash;
+use effects::blink::Blink;
+use effects::stream::Stream;
+use effects::push::Push;
 use color::Color;
 use std::sync::mpsc;
 
@@ -10,8 +15,6 @@ use midi_message::MidiMessage;
 
 use std::thread;
 use std::time::Duration;
-
-static RAINBOW: [[u8; 3]; 12] = [[255, 0, 0], [255, 128, 0], [255, 255, 0], [128, 255, 0], [0, 255, 0], [0, 255, 128], [0, 255, 255], [0, 127, 255], [0, 0, 255], [128, 0, 255], [255, 0, 255], [255, 0, 128]];
 
 enum MidiLightMessage {
     MidiMessage(MidiMessage),
@@ -22,12 +25,9 @@ enum MidiLightMessage {
 
 #[derive(Default, Clone)]
 pub struct MidiLightConfig {
-    pub blink: bool,
-    pub flash: bool,
-    pub stream: bool,
     pub led_count: usize,
     pub reversed: bool,
-    pub max_note: u8
+    pub patch: MidiLightPatch
 }
 
 
@@ -37,11 +37,11 @@ pub struct MidiLightStrip {
 
 impl MidiLightStrip {
     pub fn start(config: MidiLightConfig) -> io::Result<MidiLightStrip> {
-        let opc_strip = OpcStrip::connect(30, config.reversed)?;
+        let opc_strip = OpcStrip::connect(config.led_count, config.reversed)?;
         let (tx_strip, rx_strip) = mpsc::channel();
 
         thread::spawn(move || {
-            let mut my_thread = MidiLightStripThread { rx_strip, config, opc_strip };
+            let mut my_thread = MidiLightStripThread::new(opc_strip, rx_strip, config);
             my_thread.run();
         });
 
@@ -69,80 +69,94 @@ impl MidiLightStrip {
 pub struct MidiLightStripThread {
     opc_strip: OpcStrip,
     rx_strip: mpsc::Receiver<MidiLightMessage>,
+    effects: Vec<Box<Effect>>,
     config: MidiLightConfig
 }
 
 impl MidiLightStripThread {
+    fn new(opc_strip: OpcStrip,
+               rx_strip: mpsc::Receiver<MidiLightMessage>,
+               config: MidiLightConfig) -> MidiLightStripThread {
+        let mut result = MidiLightStripThread { rx_strip, config, opc_strip, effects: vec![] };
+        result.init();
+        result
+    }
+
+    fn init(&mut self) {
+        self.effects.clear();
+        let midi_light_patch = &self.config.patch;
+
+        if midi_light_patch.push {
+            self.effects.push(Box::new(Push::new(self.config.led_count)));
+        }
+        if midi_light_patch.stream {
+            self.effects.push(Box::new(Stream::new(self.config.led_count)));
+        }
+        if midi_light_patch.flash {
+            self.effects.push(Box::new(Flash::new(self.config.led_count)));
+        }
+        if midi_light_patch.ripples {
+            self.effects.push(Box::new(Ripple::new(self.config.led_count)));
+        }
+
+        if midi_light_patch.blink {
+            if midi_light_patch.flash {
+                self.effects.push(Box::new(Blink::new_with_add_color(Color::gray(200))));
+            } else {
+                self.effects.push(Box::new(Blink::new()));
+            }
+        }
+    }
+
+
     pub fn run(&mut self) {
         let mut color_strip = ColorStrip::new(self.config.led_count);
-        let mut blink_color = Color::gray(0);
-        let half_white = Color::gray(200);
-
-        let mut pressed_keys: Vec<u8> = vec![];
-        let mut stream_i: u64 = 0;
 
         loop {
-            let first_pixel = color_strip.pixel[0];
-            color_strip.insert(first_pixel);
-
-            if let Some(midi_light_message) = self.rx_strip.try_recv().ok() {
+            if let Ok(midi_light_message) = self.rx_strip.try_recv() {
                 match midi_light_message {
-                    MidiLightMessage::MidiMessage(MidiMessage::NoteOn(_, note, _)) if note < self.config.max_note => {
-                        pressed_keys.push(note);
-                        let color = get_rainbow_color(note);
-                        if self.config.flash {
-                            color_strip.pixel[0] = color;
-                        }
-                        if self.config.blink {
-                            if self.config.flash {
-                                blink_color = color + half_white;
-                            } else {
-                                blink_color = color;
+                    MidiLightMessage::MidiMessage(midi_message) => {
+                        let forward_message = match midi_message {
+                            MidiMessage::NoteOn(_, note, _) if note >= self.config.patch.max_note => false,
+                            _ => true
+                        };
+                        if forward_message {
+                            for effect in &mut self.effects {
+                                effect.on_midi_message(midi_message);
                             }
                         }
                     }
-                    MidiLightMessage::MidiMessage(MidiMessage::NoteOff(_, message_note, _)) => {
-                        pressed_keys.retain(|&note| note != message_note);
-                    }
                     MidiLightMessage::Reconfigure(midi_light_patch) => {
-                        self.config.blink = midi_light_patch.blink;
-                        self.config.stream = midi_light_patch.stream;
-                        self.config.flash = midi_light_patch.flash;
-                        self.config.max_note = midi_light_patch.max_note;
+                        self.config.patch = midi_light_patch;
+                        self.init();
                     }
                     MidiLightMessage::Stop => {
                         break;
                     }
-                    _ => {}
                 }
-            } else {
-                if !pressed_keys.is_empty() && self.config.stream {
-                    let key_index = (stream_i / 11) as usize % pressed_keys.len();
-                    color_strip.pixel[0] = get_rainbow_color(pressed_keys[key_index]);
-//                        - Color::gray(((stream_i as f32 / 2.0).sin() * 100.0 + 120.0) as u8);
-                    stream_i += 1;
-                } else {
-                    color_strip.pixel[0] = color_strip.pixel[0] - Color::gray(10);
-                }
-                blink_color = blink_color - Color::gray(40);
             }
 
-            self.opc_strip.send(&color_strip, blink_color);
+            color_strip.clear(Color::black());
+
+            for effect in &mut self.effects {
+                effect.paint(&mut color_strip);
+                effect.tick();
+            }
+
+            self.opc_strip.send(&color_strip);
+
             thread::sleep(Duration::from_millis(10));
         }
     }
 }
 
 
-fn get_rainbow_color(note: u8) -> Color {
-    let rgb = RAINBOW[note as usize % 12 as usize];
-    Color::new(rgb[0], rgb[1], rgb[2])
-}
-
 #[derive(Default, Clone)]
 pub struct MidiLightPatch {
     pub blink: bool,
     pub flash: bool,
     pub stream: bool,
+    pub ripples: bool,
+    pub push: bool,
     pub max_note: u8
 }
